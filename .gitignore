@@ -4,3 +4,5 @@ __pycache__/
 *.pth
 dataset/
 test_result_Sony/
+
+.idea/
