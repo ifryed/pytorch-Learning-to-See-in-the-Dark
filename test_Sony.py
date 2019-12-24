@@ -1,4 +1,5 @@
 import os, time, scipy.io
+import scipy.misc
 
 import numpy as np
 import rawpy
@@ -7,7 +8,6 @@ import glob
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from PIL import Image
 
 from model import SeeInDark
 
@@ -19,7 +19,7 @@ result_dir = './test_result_Sony/'
 
 device = torch.device('cpu')
 # get test IDs
-test_fns = glob.glob(gt_dir + '/*.ARW')
+test_fns = glob.glob(gt_dir + '/1*.ARW')
 test_ids = []
 for i in range(len(test_fns)):
     _, test_fn = os.path.split(test_fns[i])
@@ -62,6 +62,10 @@ for test_id in test_ids:
         gt_exposure = float(gt_fn[9:-5])
         ratio = min(gt_exposure / in_exposure, 300)
 
+        out_str = result_dir + '%5d_00_%d_ori.png' % (test_id, ratio)
+        if os.path.exists(out_str):
+            continue
+
         raw = rawpy.imread(in_path)
         im = raw.raw_image_visible.astype(np.float32)
         input_full = np.expand_dims(pack_raw(im), axis=0) * ratio
@@ -88,19 +92,13 @@ for test_id in test_ids:
         scale_full = scale_full * np.mean(gt_full) / np.mean(
             scale_full)  # scale the low-light image to the same mean of the groundtruth
 
-        Image.fromarray((
-                            np.clip(origin_full * 255, a_min=0, a_max=255)
-                        ).astype(np.uint8)).save(
+        scipy.misc.toimage(origin_full * 255, high=255, low=0, cmin=0, cmax=255).save(
+            result_dir + '%5d_00_%d_ori.png' % (test_id, ratio))
+        scipy.misc.toimage(output * 255, high=255, low=0, cmin=0, cmax=255).save(
             result_dir + '%5d_00_%d_out.png' % (test_id, ratio))
-        Image.fromarray((
-                            np.clip(output * 255, a_min=0, a_max=255)
-                        ).astype(np.uint8)).save(
-            result_dir + '%5d_00_%d_out.png' % (test_id, ratio))
-        Image.fromarray((
-                            np.clip(scale_full * 255, a_min=0, a_max=255)
-                        ).astype(np.uint8)).save(
+        scipy.misc.toimage(scale_full * 255, high=255, low=0, cmin=0, cmax=255).save(
             result_dir + '%5d_00_%d_scale.png' % (test_id, ratio))
-        Image.fromarray((
-                            np.clip(gt_full * 255, a_min=0, a_max=255)
-                        ).astype(np.uint8)).save(
+        scipy.misc.toimage(gt_full * 255, high=255, low=0, cmin=0, cmax=255).save(
             result_dir + '%5d_00_%d_gt.png' % (test_id, ratio))
+
+
