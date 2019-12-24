@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+import cv2
 from PIL import Image
 import numpy as np
 from skimage.measure import compare_ssim, compare_psnr
@@ -51,27 +52,28 @@ def checkMSE(folder_path: str):
 
 def checkPSNR(folder_path: str):
     dist_func = lambda gt, out: 10 * np.log10(
-        (255.0 if np.asarray(Image.open(gt)).dtype == np.uint8 else 1.0) ** 2 /
+        (2 ** 8 - 1 if np.asarray(Image.open(gt)).dtype == np.uint8 else 1.0) ** 2 /
         np.power(np.asarray(Image.open(gt)) - np.asarray(Image.open(out)), 2).mean()
     )
     checkQuality(folder_path, dist_func, 'MY PSNR')
-    #
-    # dist_func = lambda gt, out: compare_psnr(
-    #     np.asarray(Image.open(gt)), np.asarray(Image.open(out))
-    # )
-    # checkQuality(folder_path, dist_func, 'PSNR')
+
+    dist_func = lambda gt, out: compare_psnr(
+        np.asarray(Image.open(gt)), np.asarray(Image.open(out))
+    )
+    checkQuality(folder_path, dist_func, 'PSNR')
 
 
 def checkSSIMM(folder_path: str):
     print("Checking SSIM\n")
     dist_func = lambda gt, out: compare_ssim(
-        np.asarray(Image.open(gt)).mean(2), np.asarray(Image.open(out)).mean(2))
+        cv2.cvtColor(np.asarray(Image.open(gt)), cv2.COLOR_RGB2GRAY),
+        cv2.cvtColor(np.asarray(Image.open(out)), cv2.COLOR_RGB2GRAY))
     checkQuality(folder_path, dist_func, 'SSIM')
 
 
 def checkMySSIMM(folder_path: str):
     print("Checking My SSIM\n")
-    # dist_func = lambda gt, out: mySSIM(gt, out)
+    dist_func = lambda gt, out: mySSIM(gt, out)
 
     dist_func = lambda gt, out: pySSIM(gt, out)
     checkQuality(folder_path, dist_func, 'My SSIM')
@@ -110,27 +112,24 @@ def Covariance(x, y):
 
 
 def mySSIM(img1, img2):
-    L = 255.0 if img1.dtype == np.uint8 else 1.0
+    img1 = cv2.cvtColor(np.asarray(Image.open(img1)), cv2.COLOR_RGB2GRAY)
+    img2 = cv2.cvtColor(np.asarray(Image.open(img2)), cv2.COLOR_RGB2GRAY)
+    L = 2 ** 8 - 1
     img1 = img1.squeeze()
     img2 = img2.squeeze()
-
-    if len(img1.shape) > 2:
-        img1 = img1.mean(2)
-    if len(img2.shape) > 2:
-        img2 = img2.mean(2)
 
     u1 = img1.mean()
     u2 = img2.mean()
 
-    sig1 = np.std(img1)
-    sig2 = np.std(img2)
+    sig1 = np.var(img1)
+    sig2 = np.var(img2)
 
     sig12 = Covariance(img1, img2)
 
     k1 = 0.01
     k2 = 0.03
-    c1 = k1 * L
-    c2 = k2 * L
+    c1 = np.power(k1 * L, 2)
+    c2 = np.power(k2 * L, 2)
 
     ret_ssim = (2 * u1 * u2 + c1) * (2 * sig12 + c2) / \
                (
@@ -142,4 +141,4 @@ def mySSIM(img1, img2):
 if __name__ == '__main__':
     checkPSNR(sys.argv[1])
     # checkSSIMM(sys.argv[1])
-    # checkMySSIMM(sys.argv[1])
+    checkMySSIMM(sys.argv[1])
