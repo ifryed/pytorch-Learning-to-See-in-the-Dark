@@ -7,6 +7,7 @@ import glob
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import eval_data
 
 from model import SeeInDark
 
@@ -92,5 +93,9 @@ for test_id in test_ids:
         scipy.misc.toimage(output*255,  high=255, low=0, cmin=0, cmax=255).save(result_dir + '%5d_00_%d_out.png'%(test_id,ratio))
         scipy.misc.toimage(scale_full*255,  high=255, low=0, cmin=0, cmax=255).save(result_dir + '%5d_00_%d_scale.png'%(test_id,ratio))
         scipy.misc.toimage(gt_full*255,  high=255, low=0, cmin=0, cmax=255).save(result_dir + '%5d_00_%d_gt.png'%(test_id,ratio))
+        break
+  
+    eval_data.checkPSNR(result_dir)
+    eval_data.checkSSIMM(result_dir)
 
 
