@@ -5,7 +5,7 @@ import sys
 
 from PIL import Image
 import numpy as np
-from skimage.measure import compare_ssim
+from skimage.measure import compare_ssim, compare_psnr
 from pyssim.ssim.ssimlib import SSIM
 
 
@@ -43,17 +43,23 @@ def checkQuality(folder_path: str, meaure_fun: callable, dist_type: str):
 
 
 def checkMSE(folder_path: str):
-    checkQuality(folder_path, lambda gt, out:
-    np.power(
-        np.asarray(Image.open(gt)) - np.asarray(Image.open(out)), 2).mean(), 'MSE')
+    checkQuality(folder_path,
+                 lambda gt, out:
+                 np.power(np.asarray(Image.open(gt)) - np.asarray(Image.open(out)), 2).mean(),
+                 'MSE')
 
 
 def checkPSNR(folder_path: str):
-    dist_func = lambda gt, out: 10 * np.log(
-        (255.0 if gt.dtype == np.uint8 else 1.0) /
+    dist_func = lambda gt, out: 10 * np.log10(
+        (255.0 if np.asarray(Image.open(gt)).dtype == np.uint8 else 1.0) ** 2 /
         np.power(np.asarray(Image.open(gt)) - np.asarray(Image.open(out)), 2).mean()
     )
-    checkQuality(folder_path, dist_func, 'PSNR')
+    checkQuality(folder_path, dist_func, 'MY PSNR')
+    #
+    # dist_func = lambda gt, out: compare_psnr(
+    #     np.asarray(Image.open(gt)), np.asarray(Image.open(out))
+    # )
+    # checkQuality(folder_path, dist_func, 'PSNR')
 
 
 def checkSSIMM(folder_path: str):
@@ -134,6 +140,6 @@ def mySSIM(img1, img2):
 
 
 if __name__ == '__main__':
-    # checkPSNR(sys.argv[1])
+    checkPSNR(sys.argv[1])
     # checkSSIMM(sys.argv[1])
-    checkMySSIMM(sys.argv[1])
+    # checkMySSIMM(sys.argv[1])
